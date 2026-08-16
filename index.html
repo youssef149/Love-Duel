@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منصة الألعاب الثنائية</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #0f172a, #1e1b4b, #311042);
+            --card-bg: rgba(30, 41, 59, 0.95);
+            --pink: #ec4899;
+            --purple: #8b5cf6;
+            --white: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --radius: 20px;
+            --shadow: 0 15px 35px rgba(0,0,0,0.5);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body {
+            background: var(--bg-gradient);
+            color: var(--white);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 15px;
+        }
+        .app-container { width: 100%; max-width: 480px; }
+        .hero-card {
+            background: var(--card-bg);
+            border: 2px solid var(--border);
+            border-radius: var(--radius);
+            padding: 25px 20px;
+            text-align: center;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(10px);
+        }
+        h1 { color: var(--pink); font-size: 2.2rem; margin-bottom: 5px; }
+        .subtitle { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px; font-weight: 600; }
+        .games-grid { display: flex; gap: 15px; justify-content: center; margin-top: 10px; }
+        .game-card-option {
+            flex: 1; background: #1e293b; border: 2px solid var(--border);
+            border-radius: 20px; padding: 15px 10px; display: flex; flex-direction: column;
+            align-items: center; justify-content: space-between; cursor: pointer; transition: 0.3s; min-height: 240px;
+            text-decoration: none;
+        }
+        .game-card-option:hover { border-color: var(--pink); transform: translateY(-5px); }
+        .card-top-icons { width: 100%; display: flex; justify-content: space-between; align-items: center; }
+        .mini-badge { width: 35px; height: 35px; background: rgba(255, 255, 255, 0.1); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+        .card-image-placeholder { font-size: 3.5rem; margin: 10px 0; }
+        .play-btn-circle {
+            width: 50px; height: 50px; background: #fff; color: #000; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; font-size: 1.2rem;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3); transition: 0.2s;
+        }
+        .game-card-option:hover .play-btn-circle { background: var(--pink); color: #fff; }
+        .game-title-text { font-size: 1rem; font-weight: bold; color: var(--white); margin-top: 8px; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="hero-card">
+            <h1>اختر لعبتك</h1>
+            <p class="subtitle">اضغط على اللعبة للبدء فوراً</p>
+            <div class="games-grid">
+                <!-- زر لعبة حجرة ورقة مقص -->
+                <a href="rps.html" class="game-card-option">
+                    <div class="card-top-icons"><div class="mini-badge">⚔️</div></div>
+                    <div class="card-image-placeholder">✊</div>
+                    <div class="play-btn-circle">▶</div>
+                    <div class="game-title-text">حجره ورقة مقص</div>
+                </a>
+
+                <!-- زر لعبة بوم -->
+                <a href="boom.html" class="game-card-option">
+                    <div class="card-top-icons"><div class="mini-badge">💣</div></div>
+                    <div class="card-image-placeholder">💣</div>
+                    <div class="play-btn-circle">▶</div>
+                    <div class="game-title-text">بوم (BOOM)</div>
+                </a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

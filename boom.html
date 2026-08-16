@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💣 BOOM Game - Final Fix</title>
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #0f172a, #1e1b4b, #311042);
+            --card-bg: rgba(30, 41, 59, 0.9);
+            --pink: #ec4899;
+            --purple: #8b5cf6;
+            --white: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --danger: #ef4444;
+            --success: #10b981;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+
+        body {
+            background: var(--bg-gradient);
+            color: var(--white);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 15px;
+            overflow-x: hidden;
+        }
+
+        .app-container { width: 100%; max-width: 440px; position: relative; z-index: 2; }
+
+        .screen { display: none; flex-direction: column; gap: 12px; }
+        .screen.active { display: flex; animation: fadeIn 0.25s ease-in-out; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .w-100 { width: 100%; }
+
+        .hero-card, .gameplay-card {
+            background: var(--card-bg);
+            border: 2px solid var(--border);
+            border-radius: 22px;
+            padding: 24px 20px;
+            text-align: center;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+            backdrop-filter: blur(10px);
+        }
+
+        .logo-emoji { font-size: 3rem; margin-bottom: 5px; animation: bounce 2s infinite; }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+
+        h1 { color: var(--pink); font-size: 2.2rem; letter-spacing: 2px; margin-bottom: 4px; }
+        h2 { color: var(--pink); font-size: 1.4rem; margin-bottom: 15px; }
+        .subtitle { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px; font-weight: 600; }
+
+        .menu-buttons { display: flex; flex-direction: column; gap: 12px; }
+
+        .primary-btn, .secondary-btn, .danger-btn {
+            padding: 14px 20px;
+            border-radius: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            font-size: 1rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: 0.2s;
+        }
+
+        .primary-btn { background: linear-gradient(135deg, var(--pink), var(--purple)); color: #fff; box-shadow: 0 4px 15px rgba(236,72,153,0.3); }
+        .primary-btn:hover { opacity: 0.9; transform: scale(1.02); }
+        .secondary-btn { background: #334155; color: var(--white); border: 1px solid var(--border); }
+        .danger-btn { background: rgba(239, 68, 68, 0.2); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.4); }
+        .text-btn { background: none; border: none; color: var(--text-muted); margin-top: 10px; cursor: pointer; text-decoration: underline; font-size: 0.9rem; }
+
+        .form-group { margin-bottom: 15px; text-align: right; }
+        label { display: block; margin-bottom: 6px; font-size: 0.85rem; font-weight: bold; color: var(--text-muted); }
+        input {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            font-size: 1.1rem;
+            text-align: center;
+            outline: none;
+            background: #0f172a;
+            color: var(--white);
+            transition: 0.2s;
+            letter-spacing: 2px;
+        }
+        input:focus { border-color: var(--pink); }
+
+        .room-code-box {
+            font-size: 2.2rem;
+            letter-spacing: 8px;
+            font-weight: bold;
+            color: var(--pink);
+            background: #0f172a;
+            padding: 14px;
+            border-radius: 14px;
+            margin: 12px 0;
+            border: 2px dashed var(--pink);
+        }
+
+        .error-msg { color: var(--danger); font-size: 0.85rem; margin-top: 8px; font-weight: bold; }
+        .waiting-text { color: var(--purple); font-weight: bold; font-size: 0.95rem; }
+
+        .grid-3x3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin: 15px 0;
+        }
+
+        .cell {
+            aspect-ratio: 1;
+            background: #1e293b;
+            border: 2px solid var(--border);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.2rem;
+            cursor: pointer;
+            transition: 0.2s;
+            user-select: none;
+        }
+        .cell:hover { border-color: var(--pink); background: #26354a; }
+        .cell.selected-setup { border-color: var(--pink); background: rgba(236, 72, 153, 0.2); }
+        .cell.boom { background: rgba(239, 68, 68, 0.3); border-color: var(--danger); }
+        .cell.sword { background: #334155; opacity: 0.7; }
+
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 0.85rem; font-weight: bold; }
+        .connection-status { background: rgba(16, 185, 129, 0.15); color: var(--success); padding: 5px 12px; border-radius: 20px; border: 1px solid rgba(16, 185, 129, 0.3); }
+
+        .scoreboard { display: flex; gap: 10px; margin-bottom: 10px; }
+        .player-score-card { flex: 1; background: var(--card-bg); border: 2px solid var(--border); border-radius: 14px; padding: 10px; text-align: center; font-size: 0.85rem; font-weight: bold; }
+        .score-hearts { font-size: 0.9rem; margin-top: 4px; letter-spacing: 3px; }
+
+        .turn-banner {
+            background: linear-gradient(135deg, var(--pink), var(--purple));
+            color: #fff;
+            padding: 10px;
+            border-radius: 12px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 1rem;
+            margin-bottom: 12px;
+        }
+
+        .action-log {
+            background: #0f172a;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 8px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            max-height: 60px;
+            overflow-y: auto;
+            text-align: right;
+            margin-top: 10px;
+        }
+    </style>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+</head>
+<body>
+
+    <div class="app-container">
+        <!-- 1. الشاشة الرئيسية -->
+        <section id="screen-home" class="screen active">
+            <div class="hero-card">
+                <div class="logo-emoji">💣</div>
+                <h1>BOOM</h1>
+                <p class="subtitle">لعبة التحدي والقلوب السرية</p>
+                <div class="menu-buttons">
+                    <button class="primary-btn" onclick="switchScreen('screen-create')">🎮 إنشاء غرفة</button>
+                    <button class="secondary-btn" onclick="switchScreen('screen-join')">🚪 انضمام لغرفة</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. شاشة إنشاء غرفة -->
+        <section id="screen-create" class="screen">
+            <div class="hero-card">
+                <h2>🎮 إنشاء غرفة جديدة</h2>
+                <div class="form-group">
+                    <label>اسمك:</label>
+                    <input type="text" id="create-name" placeholder="اكتب اسمك هنا...">
+                </div>
+                <button class="primary-btn w-100" onclick="createRoom()">إنشاء للحصول على كود الأرقام</button>
+                <p id="create-error" class="error-msg"></p>
+                <button class="text-btn" onclick="switchScreen('screen-home')">رجوع</button>
+            </div>
+        </section>
+
+        <!-- 3. شاشة الانتظار -->
+        <section id="screen-waiting" class="screen">
+            <div class="hero-card">
+                <h2>🎮 كود الغرفة (أرقام فقط)</h2>
+                <p style="color: var(--text-muted); margin-bottom: 5px;">أرسل هذه الأرقام للطرف الثاني:</p>
+                <div class="room-code-box" id="display-room-code">------</div>
+                <button class="secondary-btn w-100" onclick="copyCode()">📋 نسخ الأرقام</button>
+                <p class="waiting-text" style="margin-top: 20px;">⏳ في انتظار انضمام الطرف الثاني أونلاين...</p>
+                <button class="danger-btn w-100" style="margin-top: 15px;" onclick="leaveGame()">🚪 إلغاء</button>
+            </div>
+        </section>
+
+        <!-- 4. شاشة الانضمام -->
+        <section id="screen-join" class="screen">
+            <div class="hero-card">
+                <h2>🚪 الانضمام إلى غرفة</h2>
+                <div class="form-group">
+                    <label>اسمك:</label>
+                    <input type="text" id="join-name" placeholder="اكتب اسمك هنا...">
+                </div>
+                <div class="form-group">
+                    <label>كود الغرفة (أرقام فقط):</label>
+                    <input type="number" id="join-code-input" placeholder="أدخل الأرقام..." inputmode="numeric">
+                </div>
+                <button class="primary-btn w-100" onclick="joinRoom()">🚪 انضمام للعبة</button>
+                <p id="join-error" class="error-msg"></p>
+                <button class="text-btn" onclick="switchScreen('screen-home')">رجوع</button>
+            </div>
+        </section>
+
+        <!-- 5. شاشة تجهيز القلوب والكلمة السرية -->
+        <section id="screen-setup" class="screen">
+            <div class="hero-card">
+                <h2>🔐 تجهيز القلوب والكلمة</h2>
+                <p class="subtitle">اكتب كلمتك السرية واختار 3 قلوب بدقة!</p>
+                
+                <div class="form-group">
+                    <label>الكلمة السرية:</label>
+                    <input type="text" id="setup-secret-word" placeholder="مثال: بحبك" oninput="checkSetupReady()">
+                </div>
+
+                <p style="font-size: 0.85rem; font-weight: bold; color: var(--text-muted); margin-bottom: 8px; text-align: right;">اختار 3 قلوب (تم اختيار: <span id="selected-count">0</span> / 3):</p>
+                <div id="setup-grid" class="grid-3x3"></div>
+
+                <button class="primary-btn w-100" id="btn-lock-setup" onclick="lockSetup()" disabled style="opacity: 0.5;">🔒 تأكيد وبدء المعركة</button>
+                <p class="waiting-text" id="setup-wait-msg" style="display: none; margin-top: 15px;">⏳ تم القفل! في انتظار أن ينهي الخصم تجهيزه...</p>
+            </div>
+        </section>
+
+        <!-- 6. شاشة اللعب -->
+        <section id="screen-game" class="screen">
+            <div class="top-bar">
+                <div class="connection-status" id="conn-status">🟢 متصل أونلاين</div>
+            </div>
+
+            <div class="scoreboard">
+                <div class="player-score-card">
+                    <span id="name-p1">اللاعب 1</span>
+                    <div class="score-hearts" id="score-p1-hearts">💣 0/3</div>
+                </div>
+                <div class="player-score-card">
+                    <span id="name-p2">اللاعب 2</span>
+                    <div class="score-hearts" id="score-p2-hearts">💣 0/3</div>
+                </div>
+            </div>
+
+            <div class="turn-banner" id="turn-banner">🎯 دورك</div>
+
+            <div class="gameplay-card">
+                <div id="board-container" class="grid-3x3"></div>
+                <div id="action-log" class="action-log"></div>
+            </div>
+            <button class="danger-btn w-100" style="margin-top: 10px;" onclick="leaveGame()">🚪 إنهاء اللعبة</button>
+        </section>
+
+        <!-- 7. شاشة الفوز -->
+        <section id="screen-win" class="screen">
+            <div class="hero-card">
+                <div style="font-size: 3rem; margin-bottom: 5px;">🏆</div>
+                <h2 id="win-title">فزت في اللعبة!</h2>
+                <p id="win-subtitle" class="subtitle">لقد وجدت قلوب الخصم الثلاثة!</p>
+                <div id="win-secret-display" style="background: #fff; padding: 12px; border-radius: 12px; margin-bottom: 15px; font-weight: bold; color: var(--pink);"></div>
+                <button class="primary-btn w-100" onclick="leaveGame()">العودة للرئيسية</button>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        let peer = null;
+        let conn = null;
+        let roomCode = "";
+        let isHost = false;
+        let myName = "";
+        let selectedSetupHearts = [];
+        
+        let gameState = {
+            status: 'waiting',
+            turn: 'p1',
+            p1: { name: '', foundCount: 0 },
+            p2: { name: '', foundCount: 0 },
+            secrets: {},
+            moves: { p1: {}, p2: {} }
+        };
+
+        function switchScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        function createRoom() {
+            myName = document.getElementById('create-name').value.trim();
+            if (!myName) {
+                document.getElementById('create-error').innerText = "❌ اكتب اسمك أولاً!";
+                return;
+            }
+
+            const numericId = Math.floor(100000 + Math.random() * 900000).toString();
+            roomCode = numericId;
+            isHost = true;
+
+            peer = new Peer('boom_' + numericId);
+
+            peer.on('open', () => {
+                document.getElementById('display-room-code').innerText = numericId;
+                switchScreen('screen-waiting');
+            });
+
+            peer.on('error', () => {
+                createRoom();
+            });
+
+            peer.on('connection', (connection) => {
+                conn = connection;
+                setupConnectionListeners();
+            });
+        }
+
+        function copyCode() {
+            navigator.clipboard.writeText(roomCode);
+            alert("تم نسخ كود الأرقام: " + roomCode);
+        }
+
+        function joinRoom() {
+            myName = document.getElementById('join-name').value.trim();
+            const code = document.getElementById('join-code-input').value.trim();
+
+            if (!myName || !code) {
+                document.getElementById('join-error').innerText = "❌ يرجى تعبئة جميع الحقول!";
+                return;
+            }
+
+            roomCode = code;
+            isHost = false;
+
+            peer = new Peer();
+
+            peer.on('open', () => {
+                conn = peer.connect('boom_' + code);
+                
+                conn.on('open', () => {
+                    setupConnectionListeners();
+                    conn.send({ type: 'JOIN', name: myName });
+                });
+
+                conn.on('error', () => {
+                    document.getElementById('join-error').innerText = "❌ تعذر الاتصال بالغرفة، تأكد من صحة الأرقام!";
+                });
+            });
+
+            peer.on('error', () => {
+                document.getElementById('join-error').innerText = "❌ خطأ في الاتصال بالشبكة!";
+            });
+        }
+
+        function setupConnectionListeners() {
+            conn.on('data', (data) => {
+                if (data.type === 'JOIN' && isHost) {
+                    gameState.p1.name = myName;
+                    gameState.p2.name = data.name;
+                    gameState.status = 'setup';
+                    broadcastState();
+                    initSetupScreen();
+                    switchScreen('screen-setup');
+                } 
+                else if (data.type === 'SYNC') {
+                    gameState = data.state;
+                    if (gameState.status === 'setup' && !document.getElementById('screen-setup').classList.contains('active')) {
+                        initSetupScreen();
+                        switchScreen('screen-setup');
+                    } else if (gameState.status === 'playing' && !document.getElementById('screen-game').classList.contains('active')) {
+                        startGamePlay();
+                    } else if (gameState.status === 'win') {
+                        updateGameUI();
+                    } else {
+                        updateGameUI();
+                    }
+                }
+                else if (data.type === 'SETUP_READY') {
+                    gameState.secrets[data.role] = data.secret;
+                    checkBothReady();
+                }
+                else if (data.type === 'MAKE_MOVE') {
+                    // الـ Host يستقبل الحركة وينفذها
+                    if (isHost) {
+                        processMove(data.index, data.attacker);
+                    }
+                }
+            });
+        }
+
+        function broadcastState() {
+            if (conn && conn.open) {
+                conn.send({ type: 'SYNC', state: gameState });
+            }
+        }
+
+        function initSetupScreen() {
+            selectedSetupHearts = [];
+            const grid = document.getElementById('setup-grid');
+            grid.innerHTML = '';
+            for (let i = 0; i < 9; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.innerText = '🤍';
+                cell.onclick = (function(idx, el) {
+                    return function() {
+                        const index = selectedSetupHearts.indexOf(idx);
+                        if (index > -1) {
+                            selectedSetupHearts.splice(index, 1);
+                            el.classList.remove('selected-setup');
+                            el.innerText = '🤍';
+                        } else {
+                            if (selectedSetupHearts.length < 3) {
+                                selectedSetupHearts.push(idx);
+                                el.classList.add('selected-setup');
+                                el.innerText = '❤️';
+                            } else {
+                                alert("اختار 3 قلوب فقط!");
+                            }
+                        }
+                        document.getElementById('selected-count').innerText = selectedSetupHearts.length;
+                        checkSetupReady();
+                    };
+                })(i, cell);
+                grid.appendChild(cell);
+            }
+        }
+
+        function checkSetupReady() {
+            const word = document.getElementById('setup-secret-word').value.trim();
+            const btn = document.getElementById('btn-lock-setup');
+            if (selectedSetupHearts.length === 3 && word.length > 0) {
+                btn.disabled = false;
+                btn.style.opacity = '1';
+            } else {
+                btn.disabled = true;
+                btn.style.opacity = '0.5';
+            }
+        }
+
+        function lockSetup() {
+            const word = document.getElementById('setup-secret-word').value.trim();
+            const myRole = isHost ? 'p1' : 'p2';
+            
+            gameState.secrets[myRole] = { word: word, positions: selectedSetupHearts };
+
+            document.getElementById('btn-lock-setup').style.display = 'none';
+            document.getElementById('setup-wait-msg').style.display = 'block';
+
+            if (isHost) {
+                checkBothReady();
+            } else {
+                conn.send({ type: 'SETUP_READY', role: myRole, secret: gameState.secrets[myRole] });
+            }
+        }
+
+        function checkBothReady() {
+            if (gameState.secrets.p1 && gameState.secrets.p2) {
+                gameState.status = 'playing';
+                broadcastState();
+                startGamePlay();
+            } else {
+                broadcastState();
+            }
+        }
+
+        function startGamePlay() {
+            switchScreen('screen-game');
+            updateGameUI();
+        }
+
+        function updateGameUI() {
+            document.getElementById('name-p1').innerText = gameState.p1.name || "اللاعب 1";
+            document.getElementById('name-p2').innerText = gameState.p2.name || "اللاعب 2";
+
+            document.getElementById('score-p1-hearts').innerText = `💣 ${gameState.p1.foundCount}/3`;
+            document.getElementById('score-p2-hearts').innerText = `💣 ${gameState.p2.foundCount}/3`;
+
+            const myRole = isHost ? 'p1' : 'p2';
+            const isMyTurn = gameState.turn === myRole;
+            const banner = document.getElementById('turn-banner');
+            
+            if (gameState.status === 'win') {
+                banner.innerText = "🏁 انتهت اللعبة!";
+            } else {
+                banner.innerText = isMyTurn ? "🎯 دورك في الهجوم واختار قلب من لوحة الخصم!" : "⏳ دور الخصم...";
+            }
+
+            const board = document.getElementById('board-container');
+            board.innerHTML = '';
+
+            const myMoves = gameState.moves[myRole] || {};
+
+            for (let i = 0; i < 9; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+
+                if (myMoves[i] !== undefined) {
+                    if (myMoves[i] === 'boom') {
+                        cell.classList.add('boom');
+                        cell.innerText = '💣';
+                    } else {
+                        cell.classList.add('sword');
+                        cell.innerText = '⚔️';
+                    }
+                } else {
+                    cell.innerText = '🤍';
+                    cell.onclick = (function(idx) {
+                        return function() {
+                            if (!isMyTurn || gameState.status === 'win' || myMoves[idx] !== undefined) return;
+                            makeMove(idx);
+                        };
+                    })(i);
+                }
+                board.appendChild(cell);
+            }
+
+            if (gameState.status === 'win') {
+                showWinScreen(gameState.winner);
+            }
+        }
+
+        function makeMove(index) {
+            const myRole = isHost ? 'p1' : 'p2';
+
+            if (isHost) {
+                processMove(index, myRole);
+            } else {
+                conn.send({ type: 'MAKE_MOVE', index: index, attacker: myRole });
+            }
+        }
+
+        function processMove(index, attackerRole) {
+            const defenderRole = attackerRole === 'p1' ? 'p2' : 'p1';
+            const opponentSecret = gameState.secrets[defenderRole];
+
+            if (!gameState.moves[attackerRole]) {
+                gameState.moves[attackerRole] = {};
+            }
+
+            if (gameState.moves[attackerRole][index] !== undefined) return;
+
+            const isBoom = opponentSecret.positions.includes(index);
+            gameState.moves[attackerRole][index] = isBoom ? 'boom' : 'sword';
+
+            if (isBoom) {
+                gameState[attackerRole].foundCount++;
+                logAction(`💥 BOOM! كشف قلباً سرياً للخصم!`);
+            } else {
+                logAction(`⚔️ SWORD! لم تكن قنبلة.`);
+            }
+
+            if (gameState[attackerRole].foundCount >= 3) {
+                gameState.status = 'win';
+                gameState.winner = attackerRole;
+                gameState.winningWord = opponentSecret.word;
+            } else {
+                gameState.turn = defenderRole;
+            }
+
+            broadcastState();
+            updateGameUI();
+        }
+
+        function logAction(text) {
+            const log = document.getElementById('action-log');
+            log.innerHTML = text + "<br>" + log.innerHTML;
+        }
+
+        function showWinScreen(winnerRole) {
+            switchScreen('screen-win');
+            const myRole = isHost ? 'p1' : 'p2';
+            const isMe = winnerRole === myRole;
+            document.getElementById('win-title').innerText = isMe ? "🏆 فزت في اللعبة!" : "💀 خسرت!";
+            document.getElementById('win-subtitle').innerText = isMe ? "لقد وجدت قلوب الخصم الثلاثة!" : "سبقك الخصم!";
+            document.getElementById('win-secret-display').innerText = `❤️ الكلمة السرية للخصم كانت: "${gameState.winningWord || ''}"`;
+        }
+
+        function leaveGame() {
+            if (peer) peer.destroy();
+            location.reload();
+        }
+    </script>
+</body>
+</html>
