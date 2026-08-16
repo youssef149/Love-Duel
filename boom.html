@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Love Duel - 💣 BOOM</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #1f1025, #2d1235, #120718);
+            --card-bg: rgba(30, 15, 35, 0.95);
+            --primary-pink: #ff2a85;
+            --accent-purple: #b041ff;
+            --text-main: #fce7f3;
+            --text-muted: #d946ef;
+            --border-color: #701a75;
+            --radius: 22px;
+            --shadow: 0 10px 30px rgba(176, 65, 255, 0.25);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: var(--bg-gradient); color: var(--text-main); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 15px; }
+        .app-container { width: 100%; max-width: 480px; position: relative; z-index: 2; }
+        .boom-screen { display: none; }
+        .boom-screen.active { display: block; animation: fadeIn 0.2s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .hero-card, .gameplay-card, .game-header-card {
+            background: var(--card-bg); border: 2px solid var(--border-color); border-radius: var(--radius);
+            padding: 25px 20px; text-align: center; box-shadow: var(--shadow); margin-bottom: 15px; position: relative;
+        }
+        h1 { color: var(--primary-pink); font-size: 1.8rem; margin-bottom: 5px; }
+        h2 { color: var(--primary-pink); font-size: 1.3rem; margin-bottom: 15px; }
+        .subtitle { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px; font-weight: 600; }
+        .boom-logo { font-size: 3rem; margin-bottom: 5px; }
+        
+        .primary-btn { background: linear-gradient(135deg, #ff2a85, #b041ff); color: #fff; width: 100%; padding: 12px; border-radius: 12px; font-weight: bold; border: none; cursor: pointer; margin-top: 8px; font-size: 1rem; }
+        .secondary-btn { background: #4a044e; color: #fce7f3; width: 100%; padding: 12px; border-radius: 12px; font-weight: bold; border: 1px solid #701a75; cursor: pointer; margin-top: 8px; font-size: 1rem; }
+        .danger-btn { background: #7f1d1d; color: #fca5a5; width: 100%; padding: 12px; border-radius: 12px; font-weight: bold; border: none; cursor: pointer; font-size: 1rem; }
+        .text-btn { background: none; border: none; color: var(--text-muted); margin-top: 12px; cursor: pointer; text-decoration: underline; }
+        
+        .form-group { margin-bottom: 15px; text-align: right; }
+        label { display: block; margin-bottom: 5px; font-size: 0.85rem; font-weight: bold; color: var(--text-muted); }
+        input { width: 100%; padding: 12px; background: rgba(0,0,0,0.3); border: 2px solid var(--border-color); border-radius: 10px; font-size: 1rem; color: #fff; text-align: center; outline: none; }
+        input:focus { border-color: var(--primary-pink); }
+        
+        .room-code-box { font-size: 1.8rem; letter-spacing: 4px; font-weight: bold; color: var(--accent-purple); background: rgba(74, 4, 78, 0.4); padding: 12px; border-radius: 12px; margin: 15px 0; border: 2px dashed var(--accent-purple); }
+        
+        /* تظبيط المربعات تماماً وبشكل متناسق */
+        .setup-grid, .board-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 15px 0; }
+        .cell-btn { aspect-ratio: 1; background: rgba(255, 255, 255, 0.05); border: 2px solid var(--border-color); border-radius: 14px; font-size: 2.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.15s; }
+        .cell-btn:hover { border-color: var(--primary-pink); background: rgba(255,42,133,0.1); }
+        .cell-btn.selected-secret { background: rgba(255, 42, 133, 0.25); border-color: var(--primary-pink); box-shadow: 0 0 12px rgba(255,42,133,0.5); }
+        
+        .game-header-card { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; margin-bottom: 10px; }
+        .boom-title-badge { background: var(--primary-pink); color: #fff; padding: 5px 12px; border-radius: 20px; font-weight: bold; font-size: 0.85rem; }
+        .turn-badge { background: var(--accent-purple); color: #fff; padding: 5px 12px; border-radius: 20px; font-weight: bold; font-size: 0.85rem; }
+        
+        .effect-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(18, 7, 24, 0.96); border-radius: var(--radius); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; }
+        .secret-reveal-box { background: rgba(74, 4, 78, 0.4); border: 2px dashed var(--accent-purple); padding: 15px; border-radius: 12px; margin-top: 15px; }
+        .back-home-btn { position: absolute; top: 15px; left: 15px; background: rgba(255,255,255,0.08); border: 1px solid var(--border-color); color: #fff; padding: 6px 12px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        
+        <!-- 1. الرئيسية -->
+        <section id="boom-screen-home" class="boom-screen active">
+            <div class="hero-card">
+                <button class="back-home-btn" onclick="window.location.href='index.html'"><i class="fa-solid fa-house"></i> الرئيسية</button>
+                <div class="boom-logo">💣</div>
+                <h1>BOOM Duel</h1>
+                <p class="subtitle">تحدي القلوب المخفية والسرية</p>
+                <div>
+                    <button class="primary-btn" onclick="boomShowScreen('boom-screen-create')"><i class="fa-solid fa-plus-circle"></i> إنشاء غرفة جديدة</button>
+                    <button class="secondary-btn" onclick="boomShowScreen('boom-screen-join')"><i class="fa-solid fa-arrow-right-to-bracket"></i> انضمام إلى غرفة</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. إنشاء غرفة -->
+        <section id="boom-screen-create" class="boom-screen">
+            <div class="hero-card">
+                <h2>🎮 إنشاء غرفة BOOM</h2>
+                <div class="form-group">
+                    <label>اسمك:</label>
+                    <input type="text" id="boom-create-name" placeholder="اكتب اسمك هنا">
+                </div>
+                <button class="primary-btn" onclick="boomCreateRoom()">إنشاء الغرفة</button>
+                <button class="text-btn" onclick="boomShowScreen('boom-screen-home')">رجوع</button>
+            </div>
+        </section>
+
+        <!-- 3. الانتظار -->
+        <section id="boom-screen-waiting" class="boom-screen">
+            <div class="hero-card">
+                <h2>⏳ جاري تجهيز الغرفة...</h2>
+                <p>كود الغرفة:</p>
+                <div class="room-code-box" id="boom-code-display">...</div>
+                <p class="subtitle">ابعت الكود للطرف التاني ❤️</p>
+                <button class="danger-btn" onclick="location.reload()">مغادرة</button>
+            </div>
+        </section>
+
+        <!-- 4. الانضمام -->
+        <section id="boom-screen-join" class="boom-screen">
+            <div class="hero-card">
+                <h2>🚪 الانضمام لغرفة BOOM</h2>
+                <div class="form-group">
+                    <label>اسمك:</label>
+                    <input type="text" id="boom-join-name" placeholder="اكتب اسمك هنا">
+                </div>
+                <div class="form-group">
+                    <label>كود الغرفة:</label>
+                    <input type="text" id="boom-join-code" placeholder="أدخل الكود المكون من أرقام" style="text-transform: uppercase;">
+                </div>
+                <button class="primary-btn" onclick="boomJoinRoom()">دخول الغرفة</button>
+                <p id="boom-join-error" style="color:#ef4444; font-size:0.85rem; margin-top:8px;"></p>
+                <button class="text-btn" onclick="boomShowScreen('boom-screen-home')">رجوع</button>
+            </div>
+        </section>
+
+        <!-- 5. التجهيز (اختر 3 قلوب وكلمة سرية) -->
+        <section id="boom-screen-setup" class="boom-screen">
+            <div class="hero-card">
+                <h2>🔐 مرحلة التجهيز السرية</h2>
+                <p class="subtitle">اختر 3 قلوب وضع الكلمة السرية</p>
+                
+                <div class="form-group">
+                    <label>الكلمة السرية:</label>
+                    <input type="text" id="boom-secret-word" placeholder="مثال: بحبك">
+                </div>
+
+                <p style="font-weight: bold; margin: 15px 0 8px; font-size: 0.9rem; color: var(--primary-pink);">اضغط على 3 قلوب لتفعيلها:</p>
+                <div class="setup-grid" id="boom-setup-grid"></div>
+
+                <button class="primary-btn" style="margin-top: 15px;" onclick="boomLockSetup()">تأكيد وبدء التحدي 🔒</button>
+            </div>
+        </section>
+
+        <section id="boom-screen-waiting-setup" class="boom-screen">
+            <div class="hero-card">
+                <h2>⏳ في انتظار الطرف الآخر...</h2>
+                <p class="subtitle">تم قفل اختيارك بنجاح ❤️</p>
+            </div>
+        </section>
+
+        <!-- 6. اللعب الفعلي -->
+        <section id="boom-screen-game" class="boom-screen">
+            <div class="game-header-card">
+                <div class="boom-title-badge">💣 BOOM</div>
+                <div id="boom-turn-indicator" class="turn-badge">🎯 دورك</div>
+                <div style="font-size: 0.85rem; font-weight: bold; color: var(--text-muted);">القلوب: <strong id="boom-score-counter">0 / 3</strong></div>
+            </div>
+
+            <div class="gameplay-card">
+                <p class="subtitle">اختر قلبًا من لوحة الخصم:</p>
+                <div class="board-grid" id="boom-opponent-board"></div>
+
+                <div id="boom-effect-overlay" class="hidden effect-overlay">
+                    <h1 id="boom-effect-title" style="font-size: 2.2rem; margin-bottom: 10px;">💥 BOOM!</h1>
+                    <p id="boom-effect-subtitle" style="color: var(--text-muted); font-size: 1.1rem;"></p>
+                </div>
+
+                <button class="danger-btn" style="margin-top: 20px;" onclick="location.reload()">إنهاء والرجوع</button>
+            </div>
+        </section>
+
+        <!-- 7. شاشة الفوز / الخسارة -->
+        <section id="boom-screen-win" class="boom-screen">
+            <div class="hero-card">
+                <div style="font-size: 3rem; margin-bottom: 5px;">🏆</div>
+                <h1 id="boom-win-title">YOU WIN!</h1>
+                <p class="subtitle" id="boom-win-subtitle">لقد اكتشفت جميع القلوب!</p>
+                
+                <div class="secret-reveal-box">
+                    <p style="color: var(--text-muted); font-size: 0.9rem;">❤️ الكلمة السرية للخصم كانت:</p>
+                    <h3 id="boom-revealed-secret" style="color: var(--primary-pink); margin-top: 5px;">"---"</h3>
+                </div>
+
+                <button class="primary-btn" style="margin-top: 20px;" onclick="location.reload()">🔄 لعب مرة أخرى</button>
+            </div>
+        </section>
+
+    </div>
+
+    <script>
+        let boomPeer, boomConn;
+        let boomRole = "";
+        let boomMyName = "", boomOpponentName = "";
+        let mySecretWord = "", opponentSecretWord = "";
+        let myChosenHearts = [];
+        let opponentSecretHearts = [];
+        let myRevealedHeartsCount = 0;
+        let isMyTurn = false;
+        let gameEnded = false;
+        let setupCompleted = false;
+
+        const peerIceConfig = {
+            config: {
+                'iceServers': [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' }
+                ]
+            }
+        };
+
+        function boomShowScreen(id) {
+            document.querySelectorAll('.boom-screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        function boomCreateRoom() {
+            boomMyName = document.getElementById('boom-create-name').value.trim() || "اللاعب 1";
+            boomRole = 'p1';
+            const randomId = Math.floor(1000 + Math.random() * 9000).toString();
+
+            boomPeer = new Peer('boomduel-' + randomId, peerIceConfig);
+
+            boomPeer.on('open', () => {
+                document.getElementById('boom-code-display').innerText = randomId;
+                boomShowScreen('boom-screen-waiting');
+            });
+
+            boomPeer.on('connection', (connection) => {
+                boomConn = connection;
+                setupBoomConnection();
+            });
+        }
+
+        function boomJoinRoom() {
+            boomMyName = document.getElementById('boom-join-name').value.trim() || "اللاعب 2";
+            boomRole = 'p2';
+            let code = document.getElementById('boom-join-code').value.trim();
+
+            if(!code) {
+                document.getElementById('boom-join-error').innerText = "❌ اكتب الكود الأول!";
+                return;
+            }
+
+            boomPeer = new Peer(peerIceConfig);
+
+            boomPeer.on('open', () => {
+                boomConn = boomPeer.connect('boomduel-' + code, { reliable: true });
+
+                boomConn.on('open', () => {
+                    setupBoomConnection();
+                    setTimeout(() => {
+                        boomConn.send({ type: 'BOOM_INIT', name: boomMyName });
+                    }, 300);
+                });
+
+                boomConn.on('error', () => {
+                    document.getElementById('boom-join-error').innerText = "❌ تعذر الاتصال، تأكد من الكود!";
+                });
+            });
+        }
+
+        function setupBoomConnection() {
+            if(boomRole === 'p1') {
+                setTimeout(() => {
+                    boomConn.send({ type: 'BOOM_INIT', name: boomMyName });
+                }, 300);
+            }
+
+            boomConn.on('data', (data) => {
+                if(data.type === 'BOOM_INIT') {
+                    boomOpponentName = data.name;
+                    initBoomSetupPhase();
+                } else if(data.type === 'BOOM_READY') {
+                    opponentSecretHearts = data.hearts;
+                    opponentSecretWord = data.word;
+                    checkBothReadyAndStart();
+                } else if(data.type === 'BOOM_GUESS') {
+                    handleIncomingGuess(data.index);
+                } else if(data.type === 'BOOM_GUESS_RESULT') {
+                    handleGuessResultResponse(data.index, data.isBoom, data.nextTurn);
+                } else if(data.type === 'BOOM_WIN') {
+                    triggerBoomWin(false);
+                }
+            });
+        }
+
+        function initBoomSetupPhase() {
+            boomShowScreen('boom-screen-setup');
+            let grid = document.getElementById('boom-setup-grid');
+            grid.innerHTML = "";
+            myChosenHearts = [];
+
+            for(let i=0; i<9; i++) {
+                let btn = document.createElement('button');
+                btn.className = 'cell-btn';
+                btn.innerText = '🤍';
+                btn.onclick = () => toggleBoomHeart(i, btn);
+                grid.appendChild(btn);
+            }
+        }
+
+        function toggleBoomHeart(index, btn) {
+            if(myChosenHearts.includes(index)) {
+                myChosenHearts = myChosenHearts.filter(item => item !== index);
+                btn.classList.remove('selected-secret');
+                btn.innerText = '🤍';
+            } else {
+                if(myChosenHearts.length >= 3) {
+                    alert("⚠️ مسموح لك اختيار 3 قلوب سرية فقط!");
+                    return;
+                }
+                myChosenHearts.push(index);
+                btn.classList.add('selected-secret');
+                btn.innerText = '❤️';
+            }
+        }
+
+        function boomLockSetup() {
+            mySecretWord = document.getElementById('boom-secret-word').value.trim();
+            if(!mySecretWord) {
+                alert("⚠️ اكتب الكلمة السرية الأول!");
+                return;
+            }
+            if(myChosenHearts.length !== 3) {
+                alert("⚠️ اختار 3 قلوب بالضبط!");
+                return;
+            }
+
+            setupCompleted = true;
+            boomShowScreen('boom-screen-waiting-setup');
+
+            boomConn.send({
+                type: 'BOOM_READY',
+                hearts: myChosenHearts,
+                word: mySecretWord
+            });
+
+            checkBothReadyAndStart();
+        }
+
+        let opponentReadyReceived = false;
+        function checkBothReadyAndStart() {
+            if(opponentSecretHearts.length === 3) {
+                opponentReadyReceived = true;
+            }
+            if(setupCompleted && opponentReadyReceived) {
+                startBoomGamePlay();
+            }
+        }
+
+        function startBoomGamePlay() {
+            boomShowScreen('boom-screen-game');
+            buildOpponentBoard();
+            isMyTurn = (boomRole === 'p1');
+            updateBoomTurnUI();
+        }
+
+        function buildOpponentBoard() {
+            let board = document.getElementById('boom-opponent-board');
+            board.innerHTML = "";
+
+            for(let i=0; i<9; i++) {
+                let btn = document.createElement('button');
+                btn.className = 'cell-btn';
+                btn.innerText = '❓';
+                btn.onclick = () => makeBoomGuess(i, btn);
+                board.appendChild(btn);
+            }
+        }
+
+        function updateBoomTurnUI() {
+            let indicator = document.getElementById('boom-turn-indicator');
+            if(isMyTurn) {
+                indicator.innerText = "🎯 دورك في الهجوم";
+                indicator.style.background = "#ff2a85";
+            } else {
+                indicator.innerText = "🛡️ دور الخصم";
+                indicator.style.background = "#b041ff";
+            }
+        }
+
+        function makeBoomGuess(index, btn) {
+            if(!isMyTurn || gameEnded) return;
+            if(btn.disabled) return;
+            btn.disabled = true;
+
+            boomConn.send({
+                type: 'BOOM_GUESS',
+                index: index
+            });
+        }
+
+        function handleIncomingGuess(index) {
+            let isBoom = myChosenHearts.includes(index);
+            if(isBoom) {
+                myRevealedHeartsCount++;
+            }
+
+            let nextTurn = (boomRole === 'p1') ? 'p2' : 'p1';
+
+            boomConn.send({
+                type: 'BOOM_GUESS_RESULT',
+                index: index,
+                isBoom: isBoom,
+                nextTurn: nextTurn
+            });
+
+            if(myRevealedHeartsCount >= 3) {
+                gameEnded = true;
+                boomConn.send({ type: 'BOOM_WIN' });
+                triggerBoomWin(false);
+            }
+        }
+
+        function handleGuessResultResponse(index, isBoom, nextTurn) {
+            let board = document.getElementById('boom-opponent-board');
+            let btn = board.children[index];
+
+            if(isBoom) {
+                btn.innerText = '💥';
+                btn.style.background = 'rgba(239, 68, 68, 0.3)';
+                btn.style.borderColor = '#ef4444';
+                myScoreIncrement();
+                showBoomEffect("💥 BOOM!", "كشفت قلباً سرياً للخصم!");
+            } else {
+                btn.innerText = '❌';
+                btn.style.background = 'rgba(255, 255, 255, 0.02)';
+                showBoomEffect("💨 هواء!", "لم تصب قلباً سرياً.");
+            }
+
+            isMyTurn = (nextTurn === boomRole);
+            updateBoomTurnUI();
+        }
+
+        let myGuessedScore = 0;
+        function myScoreIncrement() {
+            myGuessedScore++;
+            document.getElementById('boom-score-counter').innerText = `${myGuessedScore} / 3`;
+            if(myGuessedScore >= 3) {
+                gameEnded = true;
+                boomConn.send({ type: 'BOOM_WIN' });
+                triggerBoomWin(true);
+            }
+        }
+
+        function showBoomEffect(title, subtitle) {
+            let overlay = document.getElementById('boom-effect-overlay');
+            document.getElementById('boom-effect-title').innerText = title;
+            document.getElementById('boom-effect-subtitle').innerText = subtitle;
+            overlay.classList.remove('hidden');
+
+            setTimeout(() => {
+                overlay.classList.add('hidden');
+            }, 1200);
+        }
+
+        function triggerBoomWin(iWon) {
+            gameEnded = true;
+            boomShowScreen('boom-screen-win');
+
+            let titleEl = document.getElementById('boom-win-title');
+            let subEl = document.getElementById('boom-win-subtitle');
+            document.getElementById('boom-revealed-secret').innerText = `"${opponentSecretWord}"`;
+
+            if(iWon) {
+                titleEl.innerText = "🏆 تهانينا، لقد فزت!";
+                subEl.innerText = "اكتشفت جميع قلوب الخصم بامتياز!";
+                if(typeof confetti === 'function') {
+                    confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+                }
+            } else {
+                titleEl.innerText = "💔 هارد لك، لقد خسرت!";
+                subEl.innerText = "استطاع الخصم كشف قلوبك أولاً.";
+            }
+        }
+    </script>
+</body>
+</html>
